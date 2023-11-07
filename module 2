@@ -1,0 +1,107 @@
+import csv
+import psycopg2
+import datetime
+from tkinter import *
+
+###Data inlezen uit CSV-Bestand###
+data = []
+global index
+index = 0
+
+with open('test.csv', 'r') as csv_bestand:
+    csv_lezer = csv.reader(csv_bestand)
+    for rij in csv_lezer:
+        data.append(rij)
+
+###Definieer de Pagina 2-functie voor weergave van gegevens###
+def Pagina2():
+    global NaamModerator, EmailModerator, index
+
+    print(data[index][0])
+    print(index)
+    if index == 0:
+        NaamModerator = NaamInput.get()
+        EmailModerator = EmailInput.get()
+        Welkom.destroy()
+        NaamLabel.destroy()
+        NaamInput.destroy()
+        EmailLabel.destroy()
+        EmailInput.destroy()
+        Verstuur.destroy()
+
+    global NaamLabell, BerichtLabel, StationLabel, DatumLabel
+    if index < len(data):
+        NaamLabell.config(text=f"Naam: {data[index][0]}")
+        BerichtLabel.config(text=f"Bericht: {data[index][1]}")
+        StationLabel.config(text=f"Station: {data[index][2]}")
+        DatumLabel.config(text=f"Datum: {data[index][3]}\n")
+        index += 1
+
+###Knoppen voor goedkeuring of afkeuring van gegevens###
+    GoedGekeurd_Knop = Button(root, text= "Goedgekeurd", font=20, bg="lightgreen", command= Goedgekeurd)
+    GoedGekeurd_Knop.pack(padx= (130,0),side='left')
+
+    Afgekeurd_Knop = Button(root, text="Afgekeurd", font=20, bg="#FF6347", command= "")
+    Afgekeurd_Knop.pack(padx= (20,0),side='left')
+
+###De goedgekeurd functie voor database###
+def Goedgekeurd():
+    connection = psycopg2.connect(
+        host="localhost",
+        database="Project Stationszuil",
+        user="postgres",
+        password="2002")
+
+    cursor = connection.cursor()
+
+    datum = datetime.datetime.now()
+    geformateerde_datum = datum.strftime("%Y-%m-%d %H:%M:%S")
+
+    insert_moderator = "INSERT INTO Moderator (Beoordeling, Beoordeling_datetime, NaamModerator, EmailModerator) VALUES (%s, %s, %s, %s)  RETURNING moderatorid"
+    data_to_insert = ("Goedgekeurd", geformateerde_datum, NaamModerator, EmailModerator)
+    cursor.execute(insert_moderator, data_to_insert)
+
+    connection.commit()
+    cursor.close()
+
+    Pagina2()
+
+###Configuratie van Tkinter en GUI###
+root = Tk()
+root.geometry("500x300")
+root.title("Moderator")
+
+Welkom = Label(root, text="Welkom moderator!", font=100)
+Welkom.pack(pady=(20, 45))
+
+NaamLabel = Label(root, text = "Voer hier je naam in")
+NaamLabel.pack()
+
+NaamInput = Entry(root)
+NaamInput.pack(pady=(0, 25))
+
+EmailLabel = Label(root, text = "Voer hier je email in")
+EmailLabel.pack()
+
+EmailInput = Entry(root)
+EmailInput.pack()
+
+Verstuur = Button(root, text="OK", command= Pagina2)
+Verstuur.pack(pady=20)
+
+###Initialize Labels for displaying data###
+NaamLabell = Label(root, font=20)
+NaamLabell.pack(padx=(130,0), pady=(40,0), anchor="w")
+
+BerichtLabel = Label(root, font=20)
+BerichtLabel.pack(padx=(130,0), anchor="w")
+
+StationLabel = Label(root, font=20)
+StationLabel.pack(padx=(130,0), anchor="w")
+
+DatumLabel = Label(root, font=20)
+DatumLabel.pack(padx=(130,0), anchor="w")
+
+###Start de tkinter mainloop###
+root.mainloop()
+
