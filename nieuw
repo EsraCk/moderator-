@@ -1,35 +1,131 @@
+import csv
+import psycopg2
+import datetime
+from tkinter import *
+from tkinter import messagebox
+import tweepy
 
+data = []
+global index
+index = 0
 
-###Knoppen voor goedkeuring of afkeuring van gegevens###
+with open('test.csv', 'r') as csv_bestand:
+    csv_lezer = csv.reader(csv_bestand)
+    for rij in csv_lezer:
+        data.append(rij)
+
+def Pagina2():
+
+    global NaamModerator, EmailModerator, index
+    if index == 0:
+        NaamModerator = NaamInput.get()
+        EmailModerator = EmailInput.get()
+        Welkom.destroy()
+        NaamLabel.destroy()
+        NaamInput.destroy()
+        EmailLabel.destroy()
+        EmailInput.destroy()
+        Verstuur.destroy()
+
+    global NaamLabell, BerichtLabel, StationLabel, DatumLabel
+    if index < len(data):
+        NaamLabell.config(text=f"Naam: {data[index][0]}")
+        BerichtLabel.config(text=f"Bericht: {data[index][1]}")
+        StationLabel.config(text=f"Station: {data[index][2]}")
+        DatumLabel.config(text=f"Datum: {data[index][3]}\n")
+    else:
+        messagebox.showinfo("Geen berichten beschikbaar", "Geen berichten meer beschikbaar")
+
     GoedGekeurd_Knop = Button(root, text= "Goedgekeurd", font=20, bg="lightgreen", command= Goedgekeurd)
     GoedGekeurd_Knop.pack(padx= (130,0),side='left')
 
-    Afgekeurd_Knop = Button(root, text="Afgekeurd", font=20, bg="#FF6347", command= "")
+
+    Afgekeurd_Knop = Button(root, text="Afgekeurd", font=20, bg="#FF6347", command= Afgekeurd)
     Afgekeurd_Knop.pack(padx= (20,0),side='left')
 
-###De goedgekeurd functie voor database###
 def Goedgekeurd():
+    global index
     connection = psycopg2.connect(
-        host="localhost",
-        database="Project Stationszuil",
+        host="20.126.146.165",
+        database="herkansen",
         user="postgres",
-        password="2002")
+        password="hallo123")
 
     cursor = connection.cursor()
 
+    ###Datum###
     datum = datetime.datetime.now()
     geformateerde_datum = datum.strftime("%Y-%m-%d %H:%M:%S")
 
-    insert_moderator = "INSERT INTO Moderator (Beoordeling, Beoordeling_datetime, NaamModerator, EmailModerator) VALUES (%s, %s, %s, %s)  RETURNING moderatorid"
-    data_to_insert = ("Goedgekeurd", geformateerde_datum, NaamModerator, EmailModerator)
-    cursor.execute(insert_moderator, data_to_insert)
+    if index < len(data):
+        insert_moderator = "INSERT INTO Moderator (Beoordeling, Beoordeling_datetime, NaamModerator, EmailModerator) VALUES (%s, %s, %s, %s)  RETURNING moderatorid"
+        data_to_insert = ("Goedgekeurd", geformateerde_datum, NaamModerator, EmailModerator)
+        cursor.execute(insert_moderator, data_to_insert)
+
+        insert_bericht = "INSERT INTO Bericht (Bericht, Bericht_datetime, NaamReiziger, Station_city, ModeratorID ) VALUES (%s, %s, %s, %s, %s)"
+        data_to_insert = (data[index][1], data[index][3], data[index][0], data[index][2], cursor.fetchone()[0])
+        cursor.execute(insert_bericht, data_to_insert)
 
     connection.commit()
     cursor.close()
 
+
+    api_key = "EKWFos3rSArEmtwb982oldtu3"
+    api_secret = "JjtMKvCTT6dM6uvUwUeK3KfuvXkw8N9rKQsNZsg1Gwr5rM4INy"
+    bearer_token = r"AAAAAAAAAAAAAAAAAAAAAIK1qwEAAAAArgkUqU5X6To39kKu9NGAGCbWR8Y%3D5Nv2WDK1MDB8ahcma0Axn2sNKlfoWvqKmnvnOXbSwMHF9I0Qi2"
+    access_token = "1721572949507870720-ysphnOe7XWmxn0V7gqrlbKotw8FISE"
+    access_token_secret = "NWLR3kOYQvTpweOD1COhXxDTPqYb9RxZgQ8twSLw0ekKp"
+
+    client = tweepy.Client(bearer_token, api_key, api_secret, access_token, access_token_secret)
+    auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_token_secret)
+    api = tweepy.API(auth)
+
+    try:
+        client.create_tweet(text=data[index][1])
+    except:
+        pass
+
+    index += 1
     Pagina2()
 
-###Configuratie van Tkinter en GUI###
+def Afgekeurd():
+    global index
+    connection = psycopg2.connect(
+        host="20.126.146.165",
+        database="herkansen",
+        user="postgres",
+        password="hallo123")
+
+    cursor = connection.cursor()
+
+    ###Datum###
+    datum = datetime.datetime.now()
+    geformateerde_datum = datum.strftime("%Y-%m-%d %H:%M:%S")
+
+    if index < len(data):
+        insert_moderator = "INSERT INTO Moderator (Beoordeling, Beoordeling_datetime, NaamModerator, EmailModerator) VALUES (%s, %s, %s, %s)  RETURNING moderatorid"
+        data_to_insert = ("Afgekeurd", geformateerde_datum, NaamModerator, EmailModerator)
+        cursor.execute(insert_moderator, data_to_insert)
+
+        insert_bericht = "INSERT INTO Bericht (Bericht, Bericht_datetime, NaamReiziger, Station_city, ModeratorID ) VALUES (%s, %s, %s, %s, %s)"
+        data_to_insert = (data[index][1], data[index][3], data[index][0], data[index][2], cursor.fetchone()[0])
+        cursor.execute(insert_bericht, data_to_insert)
+
+    connection.commit()
+    cursor.close()
+
+    # Remove the row from the list
+    if index < len(data):
+        del data[index]
+
+    # Write the updated data back to the CSV file
+    with open('test.csv', 'w', newline='') as csv_bestand:
+        csv_schrijver = csv.writer(csv_bestand)
+        csv_schrijver.writerows(data)
+
+    index += 1
+    Pagina2()
+
 root = Tk()
 root.geometry("500x300")
 root.title("Moderator")
@@ -49,10 +145,10 @@ EmailLabel.pack()
 EmailInput = Entry(root)
 EmailInput.pack()
 
-Verstuur = Button(root, text="OK", command= Pagina2)
+Verstuur = Button(root, text="OK", command= Pagina2 )
 Verstuur.pack(pady=20)
 
-###Initialize Labels for displaying data###
+###Elementen voor pagina 2###
 NaamLabell = Label(root, font=20)
 NaamLabell.pack(padx=(130,0), pady=(40,0), anchor="w")
 
@@ -64,7 +160,13 @@ StationLabel.pack(padx=(130,0), anchor="w")
 
 DatumLabel = Label(root, font=20)
 DatumLabel.pack(padx=(130,0), anchor="w")
+######
 
-###Start de tkinter mainloop###
 root.mainloop()
+
+
+
+
+
+
 
