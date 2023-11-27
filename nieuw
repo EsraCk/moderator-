@@ -1,41 +1,4 @@
-import csv
-import psycopg2
-import datetime
-from tkinter import *
 
-###Data inlezen uit CSV-Bestand###
-data = []
-global index
-index = 0
-
-with open('test.csv', 'r') as csv_bestand:
-    csv_lezer = csv.reader(csv_bestand)
-    for rij in csv_lezer:
-        data.append(rij)
-
-###Definieer de Pagina 2-functie voor weergave van gegevens###
-def Pagina2():
-    global NaamModerator, EmailModerator, index
-
-    print(data[index][0])
-    print(index)
-    if index == 0:
-        NaamModerator = NaamInput.get()
-        EmailModerator = EmailInput.get()
-        Welkom.destroy()
-        NaamLabel.destroy()
-        NaamInput.destroy()
-        EmailLabel.destroy()
-        EmailInput.destroy()
-        Verstuur.destroy()
-
-    global NaamLabell, BerichtLabel, StationLabel, DatumLabel
-    if index < len(data):
-        NaamLabell.config(text=f"Naam: {data[index][0]}")
-        BerichtLabel.config(text=f"Bericht: {data[index][1]}")
-        StationLabel.config(text=f"Station: {data[index][2]}")
-        DatumLabel.config(text=f"Datum: {data[index][3]}\n")
-        index += 1
 
 ###Knoppen voor goedkeuring of afkeuring van gegevens###
     GoedGekeurd_Knop = Button(root, text= "Goedgekeurd", font=20, bg="lightgreen", command= Goedgekeurd)
